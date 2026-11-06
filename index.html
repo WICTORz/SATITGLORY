@@ -663,14 +663,15 @@ window.approvePitchRequest=function(i){if(!state.admin)return;const m=state.mess
  const safeText=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  // Header clock in Thailand time; update every second without relying on browser locale.
  const clock=$('thaiClock');
- function tickThai(){if(clock)clock.textContent=new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date())+' น.';}
+ function tickThai(){if(clock)clock.textContent=new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date());}
  tickThai();setInterval(tickThai,1000);
  // Admin entry belongs in the drawer, immediately after the normal/light mode switch.
  const topAdmin=document.querySelector('.top .right button[title="Admin mode"]');
  if(topAdmin)topAdmin.remove();
  const drawer=$('drawerNav');
- function injectDrawerControls(){if(!drawer||$('drawerControls'))return;const box=document.createElement('div');box.id='drawerControls';box.innerHTML=`<div class="drawer-tools"><button class="navitem" onclick="toggleLightMode()"><span class="nav-admin-icon">☼</span><span>โหมดเว็บปกติ · โทนสีขาวสว่าง</span></button><button class="navitem" onclick="adminAction();toggleDrawer(false)"><span class="nav-admin-icon">⚙</span><span>ADMIN MODE</span></button></div>`;drawer.prepend(box);}
- window.toggleLightMode=function(){state.lightMode=!state.lightMode;document.body.classList.toggle('light-mode',state.lightMode);persist();};
+ function injectDrawerControls(){if(!drawer||$('drawerControls'))return;const box=document.createElement('div');box.id='drawerControls';box.innerHTML=`<div class="drawer-tools"><button class="navitem mode-toggle" id="modeToggleBtn" onclick="toggleLightMode()"><span class="nav-admin-icon" id="modeToggleIcon">☼</span><span class="mode-label">โหมดเว็บปกติ · โทนสีขาวสว่าง</span><span class="mode-state" id="modeToggleState">OFF</span></button><button class="navitem" onclick="adminAction();toggleDrawer(false)"><span class="nav-admin-icon">⚙</span><span>ADMIN MODE</span></button></div>`;drawer.appendChild(box);updateModeSwitch();}
+ function updateModeSwitch(){const on=!!state.lightMode,icon=$('modeToggleIcon'),label=$('modeToggleState'),btn=$('modeToggleBtn');if(icon)icon.textContent=on?'☼':'☾';if(label){label.textContent=on?'ON':'OFF';label.classList.toggle('is-on',on);}if(btn)btn.setAttribute('aria-pressed',String(on));}
+ window.toggleLightMode=function(){state.lightMode=!state.lightMode;document.body.classList.toggle('light-mode',state.lightMode);updateModeSwitch();persist();};
  const oldRefresh=window.refreshNavigation;window.refreshNavigation=function(){if(oldRefresh)oldRefresh();injectDrawerControls();};
  injectDrawerControls();
  // Landing services hub with icon-only destinations; preserve existing forms and data flows below.
@@ -685,13 +686,13 @@ window.approvePitchRequest=function(i){if(!state.admin)return;const m=state.mess
  window.openShoeOrder=()=>openModal(`<div class="cardhead"><h2>สั่งรองเท้าฟุตบอล</h2><button class="btn sm" onclick="closeModal()">✕</button></div><p class="small-copy">รองเท้ามือ 1–2 รุ่นตัวท็อป · สอบถามราคาและเงื่อนไขผ่อนชำระกับผู้จัด</p><div class="field"><label>ชื่อผู้ติดต่อ / ทีม</label><input id="shoeName" class="control" placeholder="ชื่อ · ทีม"></div><div class="field"><label>รุ่น / ไซส์ / งบประมาณ หรือรายละเอียดที่ต้องการ</label><textarea id="shoeDetail" class="control" placeholder="ระบุรุ่น ไซส์ หรือส่งความต้องการ"></textarea></div><div class="actions"><button class="btn primary" onclick="submitShoeOrder()">ส่งความต้องการ</button><button class="btn" onclick="closeModal()">ยกเลิก</button></div>`);
  window.submitShoeOrder=async()=>{const n=$('shoeName')?.value.trim(),d=$('shoeDetail')?.value.trim();if(!n||!d)return toast('กรุณากรอกชื่อและรายละเอียดรองเท้า');if(!await sendPublicInboxMessage({type:'สั่งรองเท้าฟุตบอล',name:n,text:d,time:new Date().toLocaleString('th-TH')}))return;closeModal();};
  // Put mini5/mini3/mini9 artwork directly beside their page headings.
- const feeTitle=$('fees')?.querySelector('.title');if(feeTitle&&!feeTitle.querySelector('img'))feeTitle.insertAdjacentHTML('afterbegin','<img class="page-mini-icon" src="images/mini5.webp" alt="">');
+ const feeTitle=$('fees')?.querySelector('.title');if(feeTitle&&!feeTitle.querySelector('img'))feeTitle.insertAdjacentHTML('afterbegin','<img class="page-mini-icon" src="images/mini4.webp" alt="">');
  const statsTitle=$('stats')?.querySelector('.title');if(statsTitle&&!statsTitle.querySelector('img'))statsTitle.insertAdjacentHTML('afterbegin','<img class="page-mini-icon" src="images/mini3.webp" alt="">');
  const bookingTitle=$('pitchbooking')?.querySelector('.title');if(bookingTitle&&!bookingTitle.querySelector('img'))bookingTitle.insertAdjacentHTML('afterbegin','<img class="page-mini-icon" src="images/mini9.webp" alt="">');
  // Tactical Board: numbered movable circles 1–7, up to seven crosses, compact toolset.
  for(let i=0;i<3;i++)state.tacticalBoards[i]=state.tacticalBoards[i]||{objects:[],strokes:[]};
  const tacticTools=document.querySelector('#tactics .tactic-tools');
- if(tacticTools)tacticTools.innerHTML=`<div class="tool-row primary-tools"><button class="btn active-tool" data-tool="select" onclick="setTacticTool('select',this)">↖ เลื่อนวัตถุ</button><button class="btn" onclick="addTacticObject('circle')">＋ วงกลม 1–7</button><button class="btn" onclick="addTacticObject('cross')">＋ กากบาท</button><button class="btn" onclick="addTacticObject('ball')">⚽ ลูกฟุตบอล</button><button class="btn" onclick="resetTacticPage()">รีเซ็ตกระดาน</button></div><div class="tool-row marker-tools"><button class="btn" data-tool="pen" onclick="setTacticTool('pen',this)">✎ เมจิกดำ (เส้นเล็ก)</button><button class="btn" data-tool="redpen" onclick="setTacticTool('redpen',this)">🖊 เมจิกแดง</button><button class="btn" onclick="undoTactic()">↶ Undo</button><button class="btn" onclick="deleteSelectedTacticObject()">ลบวัตถุที่เลือก</button></div>`;
+ if(tacticTools)tacticTools.innerHTML=`<div class="tool-row primary-tools"><button class="btn active-tool" data-tool="select" onclick="setTacticTool('select',this)">↖ เลื่อนวัตถุ</button><button class="btn" onclick="addTacticObject('circle')">＋ วงกลม 1–7</button><button class="btn" onclick="addTacticObject('cross')">＋ กากบาท</button><button class="btn" onclick="addTacticObject('ball')">⚽ ลูกฟุตบอล</button><button class="btn" onclick="resetTacticPage()">รีเซ็ตกระดาน</button></div><div class="tool-row marker-tools"><button class="btn" data-tool="pen" onclick="setTacticTool('pen',this)">✎ เมจิกดำ (เส้นเล็ก)</button><button class="btn" data-tool="redpen" onclick="setTacticTool('redpen',this)">🖊 เมจิกแดง</button><button class="btn" onclick="undoTactic()">↶ Undo</button></div>`;
  const oldAdd=window.addTacticObject;window.addTacticObject=function(type){const b=getBoard();if(type==='circle'){const n=b.objects.filter(o=>o.type==='circle').length+1;if(n>7)return toast('เพิ่มวงกลมได้สูงสุด 7 อัน');b.objects.push({type:'circle',name:String(n),x:100+((n-1)%4)*190,y:100+Math.floor((n-1)/4)*190});}else if(type==='cross'){if(b.objects.filter(o=>o.type==='cross').length>=7)return toast('เพิ่มกากบาทได้สูงสุด 7 อัน');b.objects.push({type:'cross',name:'',x:450,y:300});}else if(type==='ball'){if(b.objects.some(o=>o.type==='ball'))return toast('มีกลางสนามลูกฟุตบอลอยู่แล้ว');b.objects.push({type:'ball',name:'',x:450,y:300});}persist();renderTactic();};
  const oldRenderTactic=window.renderTactic;window.renderTactic=function(){oldRenderTactic();const g=$('tacticObjects');if(!g)return;g.querySelectorAll('g[data-idx]').forEach(el=>{const o=getBoard().objects[+el.dataset.idx];if(o?.type==='circle')el.innerHTML=`<circle r="22" fill="#fff" stroke="#321a58" stroke-width="3"/><text y="6" text-anchor="middle" font-size="17" fill="#21172f" font-weight="900">${safeText(o.name)}</text>`;});};
  // Improve the black marker from a thick stroke to a fine line, while keeping red clearly visible.
@@ -719,6 +720,77 @@ window.approvePitchRequest=function(i){if(!state.admin)return;const m=state.mess
  // Home page now spotlights the upcoming W10 programme; W9 remains archived as completed fixtures.
  const originalRender=window.render;window.render=function(){originalRender();const h=$('home');if(!h)return;const resultsCard=[...h.querySelectorAll('.grid .card')].find(c=>c.querySelector('#todayMatches'));if(resultsCard){const heading=resultsCard.querySelector('.eyebrow');if(heading)heading.textContent='8 NOV 2026 • WEEK 10';const title=resultsCard.querySelector('h2');if(title)title.textContent='โปรแกรมการแข่งขัน · รอกรอกผล';const target=resultsCard.querySelector('#todayMatches');target.innerHTML=weeks[10].map((m,i)=>fixture(m,i,10)).join('');}const next=$('nextMatches');if(next){const nextTitle=next.closest('.card')?.querySelector('h2');if(nextTitle)nextTitle.textContent='WEEK 11 · 15 NOV';next.innerHTML=weeks[11].map((m,i)=>`<div class="mini"><div class="matchtop"><span>15/${i+1}</span><span>${times[i]}</span></div><div class="versus"><div class="club">${crest(m[0])}<span>${team(m[0])[0]}</span></div><span class="muted">VS</span><div class="club"><span>${team(m[2])[0]}</span>${crest(m[2])}</div></div></div>`).join('');}};
  // Re-render the newly reordered home after all wrappers are in place.
+ if(typeof window.render==='function')window.render();
+})();
+</script>
+
+
+<script>
+(()=>{
+ const $=id=>document.getElementById(id);
+ const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const style=document.createElement('style');
+ style.textContent=`
+ @import url('https://fonts.googleapis.com/css2?family=Audiowide&display=swap');
+ .thai-clock{font:400 21px 'Audiowide',sans-serif;letter-spacing:1.2px;color:var(--lime);min-width:76px;text-align:center;white-space:nowrap;line-height:1.1}
+ @media(max-width:700px){.thai-clock{font-size:18px;min-width:67px;letter-spacing:.5px}}
+ .top .right{align-items:center;gap:7px}.top .right .iconbtn{flex:none}
+ .drawer{display:flex;flex-direction:column}.drawerhead{flex:none}#drawerNav{flex:1}
+ #drawerControls{margin-top:auto;padding-top:14px;border-top:1px solid var(--line)}
+ .drawer-tools{display:grid;gap:5px}.mode-toggle{display:flex;align-items:center}.mode-toggle .mode-label{flex:1}.mode-state{font:800 10px Inter,sans-serif;letter-spacing:.7px;padding:5px 9px;border-radius:20px;background:#e9e5ef;color:#655a70;border:1px solid #d9d0e5}.mode-state.is-on{background:#e3f8ef;color:#147653;border-color:#b9e9d3}
+ .booking-days{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:11px!important;overflow:visible!important}
+ .booking-day{width:100%;min-width:0;flex:none!important;scroll-snap-align:none}.booking-day> b{font-size:15px}.booking-slot{background:var(--panel);border-color:var(--line)}
+ .booking-team-row{display:grid;grid-template-columns:58px 58px minmax(0,1fr);align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:11px}.booking-team-row:last-child{border-bottom:0}.booking-team-row .available{color:#16865b}.booking-team-row .occupied{color:#c93e52}.booking-team-row .unavailable{color:var(--muted)}.booking-team-row small{overflow-wrap:anywhere;color:var(--muted)}
+ .booking-slot-head{margin-bottom:7px}.booking-slot-head b{font-size:15px}.booking-actions{display:flex;gap:8px}.booking-actions .btn{flex:1}
+ .page-mini-icon{width:42px;height:42px;object-fit:contain;vertical-align:middle;margin-right:9px}
+ .page-logo{width:44px;height:44px;object-fit:contain;vertical-align:middle;margin-right:10px}
+ .notice-bell{position:relative}.notice-count{position:absolute;right:-5px;top:-6px;min-width:17px;height:17px;padding:0 4px;display:grid;place-items:center;background:#e32636;color:#fff;border:2px solid var(--panel);border-radius:20px;font:800 9px Inter,sans-serif}.notice-count[hidden]{display:none!important}
+ .light-mode .notice-count{border-color:#fff}
+ .booking-form-note{font-size:11px;line-height:1.65;color:var(--muted);padding:10px 12px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;margin:8px 0}
+ .booking-modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}.booking-modal-actions .btn{min-height:44px}
+ .booking-payment-qr{display:block;width:min(230px,75%);max-height:230px;object-fit:contain;margin:10px auto;border-radius:14px;background:#fff;padding:8px}
+ .tactic-tools .tool-row{display:flex;flex-wrap:wrap;gap:8px}.tactic-tools .tool-row .btn{flex:0 1 auto}
+ @media(max-width:520px){.thai-clock{font-size:16px;min-width:59px}.top{gap:7px}.top .right{gap:5px}.booking-team-row{grid-template-columns:48px 54px minmax(0,1fr)}}
+ `;document.head.appendChild(style);
+ // Make sure the switch reflects the current persisted mode on every drawer opening.
+ const oldToggleDrawer=window.toggleDrawer;
+ if(typeof oldToggleDrawer==='function')window.toggleDrawer=function(force){oldToggleDrawer(force);const on=!!state.lightMode;document.body.classList.toggle('light-mode',on);const icon=$('modeToggleIcon'),label=$('modeToggleState'),btn=$('modeToggleBtn');if(icon)icon.textContent=on?'☼':'☾';if(label){label.textContent=on?'ON':'OFF';label.classList.toggle('is-on',on);}if(btn)btn.setAttribute('aria-pressed',String(on));};
+ // Logos requested for the relevant page headings.
+ function addLogo(pageId,src,cls='page-logo'){const title=$(pageId)?.querySelector('.title');if(title&&!title.querySelector('.page-logo,.page-mini-icon')){const img=document.createElement('img');img.src=src;img.alt='';img.className=cls;title.prepend(img);}}
+ addLogo('schedule','images/Logo1.webp');
+ addLogo('contact','images/mini6.webp');
+ const feeTitle=$('fees')?.querySelector('.title');if(feeTitle){const im=feeTitle.querySelector('img');if(im)im.src='images/mini4.webp';else addLogo('fees','images/mini4.webp','page-mini-icon');}
+ // Payment QR appears at the top of the contact/payment card.
+ const contactCard=$('contact')?.querySelector('.card');if(contactCard&&!contactCard.querySelector('.contact-pay-qr')){const h=contactCard.querySelector('.cardhead');const img=document.createElement('img');img.className='booking-payment-qr contact-pay-qr';img.src='images/qrcodepay.webp';img.alt='QR พร้อมเพย์';img.onerror=()=>{img.onerror=null;img.src='qrcodepay.webp';};if(h)h.insertAdjacentElement('afterend',img);}
+ // Bell with unread count. Opening notifications does not mark them read; the read-all action does.
+ const bell=$('noticeToggle');if(bell){bell.innerHTML='🔔';bell.classList.add('notice-bell');bell.title='การแจ้งเตือน';let count=$('badge');if(count){count.className='notice-count';count.textContent='';count.hidden=true;}}
+ const oldMarkRead=window.markRead;window.markRead=function(){if($('notices'))$('notices').classList.remove('open');state.notices=[];state.muted=false;persist();};
+ const oldRender=window.render;window.render=function(){oldRender();const count=$('badge');if(count){const n=(state.notices||[]).length;count.textContent=n>99?'99+':String(n);count.hidden=n===0;}const bell=$('noticeToggle');if(bell){bell.innerHTML='🔔';bell.classList.toggle('has-unread',(state.notices||[]).length>0);}};
+ // Use a clear bell glyph rather than the old clover glyph.
+ const bellStyle=document.createElement('style');bellStyle.textContent='.notice-bell{font-size:19px!important}.notice-bell::before,.notice-bell::after{content:none!important}';document.head.appendChild(bellStyle);
+ // Week 10: preserve every fixture, move HOME vs CLASS to match 2.
+ if(weeks[10]){const homeClass=weeks[10].findIndex(m=>m[0]==='HOME'&&m[2]==='CLASS');if(homeClass>1){const pair=weeks[10].splice(homeClass,1)[0];weeks[10].splice(1,0,pair);}}
+ // Booking schedule as a vertical date-by-date list for quick scanning.
+ const oldBookingRender=window.renderPitchBooking;
+ window.renderPitchBooking=function(){if(typeof oldBookingRender==='function')oldBookingRender();const root=$('bookingDays');if(!root)return;root.style.display='grid';root.style.gridTemplateColumns='1fr';root.style.overflow='visible';};
+ // Reservation modal: both payment paths, user details and an explicit cancel button.
+ window.openPitchBooking=function(id){const s=state.bookingSlots?.[id];if(!s)return toast('ไม่พบรอบสนามนี้');
+  const freeTeams=Array.from({length:Math.max(1,+s.capacity||1)},(_,i)=>{const t=s.teamAvailability?.[i]||{};const occupied=(state.pitchBookings||[]).some(b=>b.slotId===id&&b.teamSlot===i&&b.status!=='cancelled');return !occupied&&(t.status||'ว่าง')==='ว่าง';}).filter(Boolean).length;
+  openModal(`<div class="order-modal"><div class="cardhead"><h2>จองสนาม · ${safe(s.date)} · ${safe(s.start)}–${safe(s.end)}</h2><button class="btn sm" onclick="closeModal()">✕</button></div><p class="small-note">ค่าทีม ฿${Number(s.price||490).toLocaleString('th-TH')} · เลือกวิธีการจอง · ว่าง ${freeTeams} ทีม</p>
+  <div class="field"><label>วิธีการจอง</label><select id="pitchPayMode" class="control" onchange="togglePitchPayMode()"><option value="later">1. จองโดยจะมาจ่ายหน้าสนามภายหลัง</option><option value="now">2. จองโดยการชำระเงินทันที</option></select></div>
+  <div id="pitchPayInfo" class="booking-form-note">* การจองมาจ่ายหน้าสนามภายหลัง ต้องรอการประมวลผล อาจทับซ้อนกับคิวผู้อื่น และอาจได้รับหรือไม่ได้รับการอนุมัติ</div>
+  <div id="pitchQR" style="display:none"><img class="booking-payment-qr" src="images/qrcodepay.webp" alt="QR พร้อมเพย์" onerror="this.onerror=null;this.src='qrcodepay.webp'"><p style="text-align:center;font-weight:700">พร้อมเพย์ 093-3951128 · เวธน์วิทย์ เมฆประยูร</p><p style="text-align:center;font-size:17px;font-weight:800">ยอดชำระ ฿${Number(s.price||490).toLocaleString('th-TH')}</p><div class="field"><label>* ชื่อบัญชีที่โอน</label><input id="pitchAccount" class="control" placeholder="ชื่อบัญชีที่ใช้โอน"></div><div class="field"><label>* เลขบัญชี 4 ตัวท้าย</label><input id="pitchLast4" class="control" maxlength="4" inputmode="numeric" placeholder="0000"></div><div class="field"><label>* วันที่และเวลาที่โอนโดยประมาณ</label><input id="pitchDateTime" class="control" placeholder="เช่น 7 พ.ย. 2569 เวลา 19:30 น."></div></div>
+  <div class="field"><label>* ชื่อผู้จอง</label><input id="pitchName" class="control" placeholder="ชื่อผู้ติดต่อ"></div><div class="field"><label>* ชื่อทีมหรือทีมที่จอง</label><input id="pitchTeam" class="control" placeholder="ชื่อทีม"></div><div class="field"><label>* เบอร์โทรศัพท์ หรือ ID Line</label><input id="pitchPhone" class="control" placeholder="เบอร์โทรศัพท์ / Line ID"></div><div class="field"><label>สีเสื้อทีม / ขอเอี๊ยม (เว้นว่างได้)</label><input id="pitchShirt" class="control" placeholder="เช่น เสื้อสีดำ / ขอเอี๊ยม / เว้นว่างได้"></div>
+  <div class="booking-modal-actions"><button class="btn primary" onclick="submitPitchBooking('${safe(id)}')">ยืนยันการจอง</button><button class="btn" onclick="closeModal()">ยกเลิก</button></div></div>`);
+ };
+ window.togglePitchPayMode=function(){const now=$('pitchPayMode')?.value==='now',qr=$('pitchQR'),info=$('pitchPayInfo');if(qr)qr.style.display=now?'block':'none';if(info)info.textContent=now?'* การจองแบบชำระเงินจะได้รับการจัดคิวก่อน โปรดโอนตามยอดที่กำหนดและกรอกข้อมูลการโอนเพื่อให้แอดมินตรวจสอบ':'* การจองมาจ่ายหน้าสนามภายหลัง ต้องรอการประมวลผล อาจทับซ้อนกับคิวผู้อื่น และอาจได้รับหรือไม่ได้รับการอนุมัติ';};
+ window.submitPitchBooking=async function(id){const name=$('pitchName')?.value.trim(),teamName=$('pitchTeam')?.value.trim(),contact=$('pitchPhone')?.value.trim(),mode=$('pitchPayMode')?.value,s=state.bookingSlots?.[id];if(!s)return toast('ไม่พบรอบสนาม');if(!name||!teamName||!contact)return toast('กรุณากรอกชื่อผู้จอง ชื่อทีม และเบอร์โทรหรือ Line');let pay='';if(mode==='now'){const a=$('pitchAccount')?.value.trim(),l=$('pitchLast4')?.value.trim(),dt=$('pitchDateTime')?.value.trim();if(!a||!/^[0-9]{4}$/.test(l)||!dt)return toast('กรุณากรอกชื่อบัญชี เลข 4 ตัวท้าย และวันเวลาที่โอน');pay=`\nชื่อบัญชีที่โอน: ${a}\nเลขบัญชี 4 ตัวท้าย: ${l}\nวันที่และเวลาที่โอนโดยประมาณ: ${dt}`;}
+  const msg={type:'จองสนามเตะบอล',name:name+' · '+teamName,text:`รอบ: ${s.date} ${s.start}-${s.end}\nราคา: ฿${s.price||490}\nวิธีจอง: ${mode==='now'?'ชำระเงินทันที (ขอจัดคิวก่อน)':'จ่ายหน้าสนามภายหลัง'}\nโทรศัพท์ / Line: ${contact}\nสีเสื้อทีม / เอี๊ยม: ${$('pitchShirt')?.value.trim()||'ไม่ระบุ'}${pay}`,time:new Date().toLocaleString('th-TH')};if(!await sendPublicInboxMessage(msg))return;closeModal();toast('ส่งคำขอจองแล้ว รอผู้จัดตรวจสอบและยืนยันคิว');};
+ // Tactical Board: two tidy rows, numbered circles and crosses, no delete-object button.
+ const tools=document.querySelector('#tactics .tactic-tools');if(tools)tools.innerHTML=`<div class="tool-row primary-tools"><button class="btn active-tool" data-tool="select" onclick="setTacticTool('select',this)">↖ เลื่อนวัตถุ</button><button class="btn" onclick="addTacticObject('player')">＋ วงกลม 1–7</button><button class="btn" onclick="addTacticObject('cross')">＋ กากบาท</button><button class="btn" onclick="addTacticObject('ball')">⚽ ลูกฟุตบอล</button><button class="btn" onclick="resetTacticPage()">รีเซ็ตกระดาน</button></div><div class="tool-row marker-tools"><button class="btn" data-tool="pen" onclick="setTacticTool('pen',this)">✎ เมจิกดำ (เส้นเล็ก)</button><button class="btn" data-tool="redpen" onclick="setTacticTool('redpen',this)">🖊 เมจิกแดง</button><button class="btn" onclick="undoTactic()">↶ Undo</button></div>`;
+ window.addTacticObject=function(type){const b=getBoard();if(type==='circle')type='player';if(type==='player'){const n=b.objects.filter(o=>o.type==='player').length+1;if(n>7)return toast('เพิ่มวงกลมได้สูงสุด 7 อัน');b.objects.push({type:'player',name:String(n),x:100+((n-1)%4)*190,y:100+Math.floor((n-1)/4)*190});}else if(type==='cross'){if(b.objects.filter(o=>o.type==='cross').length>=7)return toast('เพิ่มกากบาทได้สูงสุด 7 อัน');b.objects.push({type:'cross',name:'',x:450,y:300});}else if(type==='ball'){if(b.objects.some(o=>o.type==='ball'))return toast('มีกลางสนามลูกฟุตบอลอยู่แล้ว');b.objects.push({type:'ball',name:'',x:450,y:300});}persist();renderTactic();};
+ // Force the initial page to show the updated order and current switch/badge state.
+ document.body.classList.toggle('light-mode',!!state.lightMode);
  if(typeof window.render==='function')window.render();
 })();
 </script>
