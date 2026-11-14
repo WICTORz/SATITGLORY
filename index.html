@@ -118,7 +118,7 @@ let cloudUser = null, cloudIsAdmin = false, cloudSaveTimer = null, cloudSaveQueu
 function loadLocalState(){try{return JSON.parse(localStorage.getItem('sgl-state')||'{}')}catch{return {}}}
 let localStorageWorks=true;try{localStorage.setItem('__sgl_probe','1');localStorage.removeItem('__sgl_probe')}catch{localStorageWorks=false}
 let state=loadLocalState();
-Object.assign(state,{admin:false,muted:!!state.muted,lightMode:!!state.lightMode,photoStatus:state.photoStatus||'กำลังจัดเรียงภาพถ่าย',notices:state.notices||[{text:'ประกาศประจำสัปดาห์: วันนี้มีการแข่งขัน ขอให้ท่านเช็คโปรแกรมและเตรียมตัวให้ดี!',time:'อาทิตย์ 08:00'},{text:'โปรแกรม Matchweek 8 พร้อมให้ตรวจสอบแล้ว',time:'วันนี้'}],messages:state.messages||[],players:state.players||[],stats:state.stats||[],awards:state.awards||[],feeStatuses:state.feeStatuses||{},announcement:state.announcement||'',rules:state.rules||'',feeNote:state.feeNote||'',poster:state.poster||null,posterText:state.posterText||'',matchNotes:state.matchNotes||{},matchEvents:state.matchEvents||{},teamDescriptions:state.teamDescriptions||{},homeLeaders:state.homeLeaders||{scorer:'',goals:'',assist:'',assists:''},nextPlayerId:state.nextPlayerId||((state.players?.length||0)+1)});
+Object.assign(state,{admin:false,muted:!!state.muted,lightMode:!!state.lightMode,photoStatus:state.photoStatus||'กำลังจัดเรียงภาพถ่าย',notices:state.notices||[{text:'ประกาศประจำสัปดาห์: วันนี้มีการแข่งขัน ขอให้ท่านเช็คโปรแกรมและเตรียมตัวให้ดี!',time:'อาทิตย์ 08:00'},{text:'โปรแกรม Matchweek 8 พร้อมให้ตรวจสอบแล้ว',time:'วันนี้'}],messages:state.messages||[],players:state.players||[],stats:state.stats||[],awards:state.awards||[],feeStatuses:state.feeStatuses||{},announcement:state.announcement||'',rules:state.rules||'',feeNote:state.feeNote||'',poster:state.poster||null,posterText:state.posterText||'',matchNotes:state.matchNotes||{},matchEvents:state.matchEvents||{},teamDescriptions:state.teamDescriptions||{},homeLeaders:state.homeLeaders||{scorer:'8. สิธ · กรณ์ดอกไม้สด',goals:'18',scorer2:'21. รุ่งเรือง พรหมแดน · บังฮิมรอน',goals2:'17',assist:'9. อาร์ม · ท่าแพ เอฟซี',assists:'6',clean:'14. กัน · ท่าแพ เอฟซี',cleanSheets:'7'},nextPlayerId:state.nextPlayerId||((state.players?.length||0)+1)});
 if(state.weeks){ Object.keys(state.weeks).forEach(w=>{ if(weeks[w]){ weeks[w] = state.weeks[w]; } }); }
 
 function snapshotState(){let copy=JSON.parse(JSON.stringify(state));delete copy.admin;delete copy._cloud;copy.weeks=weeks;return copy}
@@ -928,24 +928,37 @@ window.approvePitchRequest=function(i){if(!state.admin)return;const m=state.mess
    let card=$('homePlayerLeaders');
    if(!card){
      card=document.createElement('section');card.id='homePlayerLeaders';card.className='card span12';
-     card.innerHTML=`<div class="cardhead" style="margin-bottom:8px"><div><div class="eyebrow">PLAYER SPOTLIGHT</div><h2>⚽ ดาวซัลโว & 👟 ดาวแอสซิสต์</h2></div><span class="pill">LEAGUE LEADERS</span></div>
-       <div class="home-leader-grid"><div class="home-leader-item"><span>⚽ ดาวซัลโว</span><b id="homeScorerName">ยังไม่มีข้อมูล</b><strong id="homeScorerGoals">— ประตู</strong></div><div class="home-leader-item"><span>👟 ดาวแอสซิสต์</span><b id="homeAssistName">ยังไม่มีข้อมูล</b><strong id="homeAssistCount">— แอสซิสต์</strong></div></div>
-       <div class="adminonly" style="margin-top:9px"><div class="home-leader-edit"><input id="homeScorerInput" class="control" placeholder="ชื่อดาวซัลโว"><input id="homeScorerGoalsInput" class="control" type="number" min="0" placeholder="จำนวนประตู"><input id="homeAssistInput" class="control" placeholder="ชื่อดาวแอสซิสต์"><input id="homeAssistCountInput" class="control" type="number" min="0" placeholder="จำนวนแอสซิสต์"></div><button class="btn primary sm" style="margin-top:8px" onclick="saveHomeLeaders()">บันทึกประกาศดาวเด่น</button></div>`;
+     card.innerHTML=`<div class="cardhead" style="margin-bottom:12px"><div><div class="eyebrow">PLAYER SPOTLIGHT</div><h2>⚽ ดาวซัลโว · 👟 แอสซิสต์ · 🧤 คลีนชีต</h2></div><span class="pill">LEAGUE LEADERS</span></div>
+       <div class="home-leader-grid">
+        <div class="home-leader-item"><span>⚽ ดาวซัลโว · TOP SCORER</span><b id="homeScorerName">8. สิธ · กรณ์ดอกไม้สด</b><strong id="homeScorerGoals">18 ประตู</strong></div>
+        <div class="home-leader-item"><span>⚽ อันดับถัดไป</span><b id="homeScorer2Name">21. รุ่งเรือง พรหมแดน · บังฮิมรอน</b><strong id="homeScorer2Goals">17 ประตู</strong></div>
+        <div class="home-leader-item"><span>👟 ดาวแอสซิสต์ · TOP ASSIST</span><b id="homeAssistName">9. อาร์ม · ท่าแพ เอฟซี</b><strong id="homeAssistCount">6 แอสซิสต์</strong></div>
+        <div class="home-leader-item"><span>🧤 ผู้รักษาประตูคลีนชีต</span><b id="homeCleanName">14. กัน · ท่าแพ เอฟซี</b><strong id="homeCleanCount">7 คลีนชีต</strong></div>
+       </div>
+       <div class="adminonly" style="margin-top:12px">
+        <div class="home-leader-edit">
+         <input id="homeScorerInput" class="control" placeholder="ดาวซัลโวอันดับ 1"><input id="homeScorerGoalsInput" class="control" type="number" min="0" placeholder="ประตู">
+         <input id="homeScorer2Input" class="control" placeholder="ดาวซัลโวอันดับ 2"><input id="homeScorer2GoalsInput" class="control" type="number" min="0" placeholder="ประตู">
+         <input id="homeAssistInput" class="control" placeholder="ดาวแอสซิสต์"><input id="homeAssistCountInput" class="control" type="number" min="0" placeholder="แอสซิสต์">
+         <input id="homeCleanInput" class="control" placeholder="ผู้รักษาประตูคลีนชีต"><input id="homeCleanCountInput" class="control" type="number" min="0" placeholder="คลีนชีต">
+        </div><button class="btn primary sm" style="margin-top:10px" onclick="saveHomeLeaders()">บันทึกประกาศดาวเด่น</button>
+       </div>`;
      homeGrid.appendChild(card);
    }
-   const h=state.homeLeaders||{scorer:'',goals:'',assist:'',assists:''};
-   if($('homeScorerName'))$('homeScorerName').textContent=h.scorer||'ยังไม่มีข้อมูล';
-   if($('homeScorerGoals'))$('homeScorerGoals').textContent=(h.goals!==''&&h.goals!=null)?`${h.goals} ประตู`:'— ประตู';
-   if($('homeAssistName'))$('homeAssistName').textContent=h.assist||'ยังไม่มีข้อมูล';
-   if($('homeAssistCount'))$('homeAssistCount').textContent=(h.assists!==''&&h.assists!=null)?`${h.assists} แอสซิสต์`:'— แอสซิสต์';
-   if($('homeScorerInput')&&document.activeElement!==$('homeScorerInput'))$('homeScorerInput').value=h.scorer||'';
-   if($('homeScorerGoalsInput')&&document.activeElement!==$('homeScorerGoalsInput'))$('homeScorerGoalsInput').value=h.goals??'';
-   if($('homeAssistInput')&&document.activeElement!==$('homeAssistInput'))$('homeAssistInput').value=h.assist||'';
-   if($('homeAssistCountInput')&&document.activeElement!==$('homeAssistCountInput'))$('homeAssistCountInput').value=h.assists??'';
+   const h=state.homeLeaders||{};
+   const values={
+    homeScorerName:h.scorer||'8. สิธ · กรณ์ดอกไม้สด',homeScorerGoals:((h.goals!==''&&h.goals!=null)?h.goals:'18')+' ประตู',
+    homeScorer2Name:h.scorer2||'21. รุ่งเรือง พรหมแดน · บังฮิมรอน',homeScorer2Goals:((h.goals2!==''&&h.goals2!=null)?h.goals2:'17')+' ประตู',
+    homeAssistName:h.assist||'9. อาร์ม · ท่าแพ เอฟซี',homeAssistCount:((h.assists!==''&&h.assists!=null)?h.assists:'6')+' แอสซิสต์',
+    homeCleanName:h.clean||'14. กัน · ท่าแพ เอฟซี',homeCleanCount:((h.cleanSheets!==''&&h.cleanSheets!=null)?h.cleanSheets:'7')+' คลีนชีต'
+   };
+   Object.entries(values).forEach(([id,v])=>{if($(id))$(id).textContent=v});
+   const fields={homeScorerInput:h.scorer||'8. สิธ · กรณ์ดอกไม้สด',homeScorerGoalsInput:h.goals??'18',homeScorer2Input:h.scorer2||'21. รุ่งเรือง พรหมแดน · บังฮิมรอน',homeScorer2GoalsInput:h.goals2??'17',homeAssistInput:h.assist||'9. อาร์ม · ท่าแพ เอฟซี',homeAssistCountInput:h.assists??'6',homeCleanInput:h.clean||'14. กัน · ท่าแพ เอฟซี',homeCleanCountInput:h.cleanSheets??'7'};
+   Object.entries(fields).forEach(([id,v])=>{if($(id)&&document.activeElement!==$(id))$(id).value=v});
  }
  window.saveHomeLeaders=async function(){
    if(!state.admin)return toast('เข้าสู่ระบบผู้จัดก่อน');
-   state.homeLeaders={scorer:$('homeScorerInput')?.value.trim()||'',goals:$('homeScorerGoalsInput')?.value||'',assist:$('homeAssistInput')?.value.trim()||'',assists:$('homeAssistCountInput')?.value||''};
+   state.homeLeaders={scorer:$('homeScorerInput')?.value.trim()||'',goals:$('homeScorerGoalsInput')?.value||'0',scorer2:$('homeScorer2Input')?.value.trim()||'',goals2:$('homeScorer2GoalsInput')?.value||'0',assist:$('homeAssistInput')?.value.trim()||'',assists:$('homeAssistCountInput')?.value||'0',clean:$('homeCleanInput')?.value.trim()||'',cleanSheets:$('homeCleanCountInput')?.value||'0'};
    persist();
    if(cloud&&cloudIsAdmin){const ok=await saveCloudState(snapshotState());toast(ok?'บันทึกประกาศดาวเด่นออนไลน์แล้ว':'บันทึกในเครื่องแล้ว แต่ซิงก์ออนไลน์ไม่สำเร็จ');}
    else toast('บันทึกประกาศดาวเด่นในอุปกรณ์นี้แล้ว');
@@ -973,6 +986,328 @@ window.approvePitchRequest=function(i){if(!state.admin)return;const m=state.mess
  const style=document.createElement('style');style.textContent=`.home-leader-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.home-leader-item{display:grid;gap:4px;padding:10px;border:1px solid #c6a45b44;border-radius:11px;background:#c6a45b0a}.home-leader-item span{font-size:10px;color:#8b6d2d}.home-leader-item b{font-size:13px}.home-leader-item strong{font:800 13px Inter;color:#92701e}.home-leader-edit{display:grid;grid-template-columns:1fr 100px;gap:6px}@media(max-width:500px){.home-leader-edit{grid-template-columns:1fr 80px}}`;
  document.head.appendChild(style);
  if(typeof window.render==='function')window.render();
+})();
+</script>
+
+
+<script>
+/* SATIT GLORY LEAGUE · SS2 visual and Week 11 update */
+(()=>{
+  const $ = id => document.getElementById(id);
+  const W11 = [
+    ['ALPHA',null,'CLASS',null],
+    ['HOME',null,'CHANG',null],
+    ['BANG',null,'REY',null],
+    ['TOTA',null,'BUDDY',null],
+    ['PHOENIX',null,'YOUTH',null],
+    ['KORN',null,'THAPHAE',null]
+  ];
+  const dates = {
+    1:'6 กันยายน',2:'13 กันยายน',3:'20 กันยายน',4:'27 กันยายน',
+    5:'4 ตุลาคม',6:'11 ตุลาคม',7:'18 ตุลาคม',8:'25 ตุลาคม',
+    9:'1 พฤศจิกายน',10:'8 พฤศจิกายน',11:'15 พฤศจิกายน'
+  };
+
+  function enforceWeek11(){
+    if(typeof weeks === 'undefined' || !weeks[11]) return;
+    const old = weeks[11];
+    weeks[11] = W11.map((m,i)=>{
+      const prior = old[i] || [];
+      if(prior[0]===m[0] && prior[2]===m[2]) return [m[0],prior[1]??null,m[2],prior[3]??null];
+      if(prior[0]===m[2] && prior[2]===m[0]) return [m[0],prior[3]??null,m[2],prior[1]??null];
+      return [...m];
+    });
+  }
+
+  function renderWeek11Editor(){
+    const host = $('todayMatches');
+    if(!host) return;
+    host.innerHTML = weeks[11].map((m,i)=>fixture(m,i,11)).join('') +
+      `<div class="adminonly actions" style="margin-top:14px">
+        <button class="btn primary sm" onclick="saveMatchweekResults()">บันทึกผลการแข่งขัน W11</button>
+        <button class="btn sm" onclick="announceResults()">ประกาศผลการแข่งขัน</button>
+      </div>
+      <div class="card adminonly" style="margin-top:12px;padding:12px">
+        <b>หมายเหตุสำหรับผู้จัด · WEEK 11</b>
+        <div id="matchNotes"></div>
+        <button class="btn sm" style="margin-top:8px" onclick="saveMatchNotes()">บันทึกหมายเหตุ</button>
+      </div>`;
+    const notes = $('matchNotes');
+    if(notes) notes.innerHTML = Array.from({length:6},(_,i)=>
+      `<div class="field"><label>คู่ที่ ${i+1}</label><input class="control match-note" value="${String(state.matchNotes?.[i]||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" placeholder="หมายเหตุสำหรับคู่ที่ ${i+1}"></div>`
+    ).join('');
+  }
+
+  function renderAllFixtures(){
+    const home = $('home');
+    const grid = home?.querySelector(':scope > .grid');
+    if(!home || !grid) return;
+    let panel = $('homeAllFixtures');
+    if(!panel){
+      panel = document.createElement('section');
+      panel.id = 'homeAllFixtures';
+      panel.className = 'card home-all-fixtures';
+      panel.innerHTML = `<div class="all-fixtures-heading">
+        <div><div class="eyebrow">THE SEASON · FIXTURES & RESULTS</div><h2>โปรแกรมและผลการแข่งขันทั้งหมด</h2><p>รวมทุกสัปดาห์ ตั้งแต่นัดเปิดฤดูกาลจนถึงนัดสุดท้าย</p></div>
+        <span class="all-fixtures-count">11 WEEKS</span>
+      </div><div id="homeFixtureArchive"></div>`;
+      grid.insertAdjacentElement('afterend',panel);
+    }
+    const archive = $('homeFixtureArchive');
+    if(!archive) return;
+    archive.innerHTML = Object.keys(weeks).sort((a,b)=>+a-+b).map(w=>{
+      const complete = weeks[w].filter(m=>m[1]!==null && m[3]!==null).length;
+      const isCurrent = +w===11;
+      return `<details class="home-week" ${isCurrent?'open':''}>
+        <summary><span class="week-number">W${String(w).padStart(2,'0')}</span><span class="week-date">${dates[w]||'ฤดูกาล 2026'} 2569</span><span class="week-progress">${complete}/6 ${complete===6?'จบแล้ว':'คู่ที่มีผล'}</span><span class="week-chevron">＋</span></summary>
+        <div class="week-fixtures">${weeks[w].map((m,i)=>fixture(m,i,+w)).join('')}</div>
+      </details>`;
+    }).join('');
+  }
+
+  const baseRender = window.render;
+  if(typeof baseRender === 'function'){
+    window.render = function(){
+      enforceWeek11();
+      baseRender();
+      const heading = $('todayMatches')?.closest('.card');
+      if(heading){
+        heading.classList.add('home-fixtures-card');
+        const eyebrow = heading.querySelector('.cardhead .eyebrow');
+        const title = heading.querySelector('.cardhead h2');
+        if(eyebrow) eyebrow.textContent = '15 NOV 2026 · WEEK 11';
+        if(title) title.textContent = 'โปรแกรมการแข่งขัน · รอกรอกผล';
+        const grid = $('home')?.querySelector(':scope > .grid');
+        const standings = grid?.querySelector('#miniStandings')?.closest('.card');
+        const hub = $('serviceHub');
+        if(grid){
+          if(standings) standings.insertAdjacentElement('beforebegin',heading);
+          else grid.prepend(heading);
+          if(standings && hub) standings.insertAdjacentElement('afterend',hub);
+          else if(standings && !hub) standings.insertAdjacentElement('afterend',heading.nextElementSibling || heading);
+        }
+      }
+      renderWeek11Editor();
+      const next = $('nextMatches')?.closest('.card');
+      if(next) next.remove();
+      renderAllFixtures();
+    };
+  }
+
+  window.saveMatchweekResults = async function(){
+    if(!state.admin) return toast('เข้าสู่ระบบผู้จัดก่อนบันทึกผล');
+    enforceWeek11();
+    persist();
+    if(typeof cloud !== 'undefined' && cloud && cloudIsAdmin){
+      const ok = await saveCloudState(snapshotState());
+      toast(ok?'บันทึกผล WEEK 11 ออนไลน์แล้ว':'บันทึกในเครื่องแล้ว แต่ซิงก์ออนไลน์ไม่สำเร็จ');
+    }else toast('บันทึกผล WEEK 11 แล้ว');
+  };
+
+  window.announceResults = function(){
+    const completed = weeks[11].filter(m=>m[1]!==null && m[3]!==null);
+    if(!completed.length) return toast('ยังไม่มีผลการแข่งขัน W11 ให้ประกาศ');
+    state.notices = state.notices || [];
+    completed.forEach(m=>state.notices.unshift({
+      text:`จบการแข่งขัน! ${team(m[0])[1]} ${m[1]} – ${m[3]} ${team(m[2])[1]}`,
+      time:new Date().toLocaleString('th-TH')
+    }));
+    persist();
+    toast(`ประกาศผลการแข่งขันแล้ว ${completed.length} คู่`);
+  };
+
+  const style = document.createElement('style');
+  style.textContent = `
+    :root{--bg:#090d10;--panel:#11171b;--panel2:#171f24;--line:#2a343a;--muted:#9aa7aa;--text:#f2f3ef;--lime:#d8c18d;--green:#71d3b2;--radius:19px}
+    html{scroll-behavior:smooth}
+    body:not(.light-mode){background:radial-gradient(ellipse at 12% 0%,#19302d 0,transparent 34%),radial-gradient(ellipse at 95% 30%,#20232c 0,transparent 30%),#090d10;color:#f2f3ef}
+    body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.14;background-image:linear-gradient(90deg,#ffffff08 1px,transparent 1px),linear-gradient(#ffffff08 1px,transparent 1px);background-size:52px 52px;mask-image:linear-gradient(to bottom,#000,transparent 72%)}
+    .top{height:72px;background:#090e12eF;border-bottom:1px solid #ffffff16;box-shadow:0 8px 28px #0003}
+    .brand{letter-spacing:1.1px;font-size:14px}.brand small{letter-spacing:1.7px;color:#a9b5b3}
+    .iconbtn{border-radius:12px;background:#151d21;border-color:#344047;transition:transform .2s,border-color .2s}
+    .iconbtn:hover{transform:translateY(-2px);border-color:#d8c18d}
+    .wrap{max-width:1180px;padding-top:28px}
+    .hero{min-height:290px;padding:clamp(22px,4vw,38px);border-radius:26px;border:1px solid #5e6c62;background:linear-gradient(112deg,#172622 0%,#11191c 54%,#191b22 100%);box-shadow:0 24px 60px #0004;isolation:isolate}
+    .hero:after{content:"SEASON 02";right:22px;top:auto;bottom:-28px;font:900 clamp(62px,12vw,150px) Inter,sans-serif;letter-spacing:-.09em;color:#ffffff08;white-space:nowrap;z-index:-1}
+    .hero .title{font-weight:800;letter-spacing:-1.4px;color:#e6d4a9!important}
+    .hero .meta{max-width:850px;line-height:1.9;color:#b8c2be}
+    .eyebrow{color:#d8c18d;letter-spacing:2px;font-size:9px}
+    .count{color:#e6d4a9;font-size:clamp(24px,4vw,34px);letter-spacing:3px}
+    .live{border:1px solid #a84e4e55;background:#321c20;color:#ff8585}
+    .card{background:linear-gradient(145deg,#151d21,#101619 80%);border:1px solid #2b373d;border-radius:19px;box-shadow:0 12px 32px #0002;transition:border-color .2s,transform .2s,box-shadow .2s}
+    .card:hover{border-color:#53615d;box-shadow:0 16px 38px #0003}
+    .cardhead{gap:12px}.card h2{font-size:15px;letter-spacing:.1px}
+    .pill,.tag{border-radius:7px;letter-spacing:.3px}
+    .btn{border-radius:10px;border-color:#3a464c;background:#1a2429;color:#e8ece8;transition:transform .18s,background .18s,border-color .18s}
+    .btn:hover{transform:translateY(-1px);border-color:#d8c18d;background:#253137}
+    .btn.primary{background:#d8c18d;color:#171b1b;border-color:#d8c18d}
+    .btn.primary:hover{background:#ead9b4}
+    .match{padding:15px 12px;border-top:1px solid #ffffff12;border-radius:11px;transition:background .2s}
+    .match:hover{background:#ffffff06}
+    .matchtop{font:600 10px Inter,'IBM Plex Sans Thai',sans-serif;letter-spacing:.35px}
+    .club{font-size:13px;line-height:1.4;min-width:0}.club span{overflow-wrap:anywhere}
+    .crest{width:34px;height:34px;border-radius:10px;background:#202a2e;border:1px solid #ffffff25;padding:2px}
+    .score{min-width:72px;text-align:center;padding:7px 10px;border:1px solid #ffffff18;border-radius:9px;background:#080e11;font-size:16px;color:#e7d4a7}
+    .status{font-size:9px;letter-spacing:.7px;text-transform:uppercase}
+    .rankrow{border:1px solid #ffffff0a;background:#ffffff04;border-radius:10px;padding:9px 10px}
+    .ranknum{color:#d8c18d}
+    .tablewrap{border:1px solid #ffffff12;border-radius:12px}
+    th{background:#182126;color:#bdc5c3;letter-spacing:.5px}
+    td{border-color:#ffffff0c}
+    .bottom{background:#090e12f2;border-top:1px solid #ffffff18;backdrop-filter:blur(24px)}
+    .tab{font-weight:600;letter-spacing:.2px}.tab.active{color:#e4d0a1}
+    .drawer{background:#10171b;border-color:#344047}.drawerhead{background:linear-gradient(120deg,#26372f,#171f24)}
+    .navitem.sel,.navitem:hover{background:#d8c18d18;color:#e6d4a9}
+    .field input,.field select,.field textarea,input.control,select.control,textarea.control{background:#0b1114;border-color:#344047;border-radius:10px}
+    .field input:focus,.field select:focus,.field textarea:focus,input.control:focus,select.control:focus,textarea.control:focus{border-color:#d8c18d;box-shadow:0 0 0 3px #d8c18d18}
+    .home-fixtures-card{background:linear-gradient(145deg,#141d20,#0d1317)!important;border:1px solid #7a6a4b!important}
+    .home-fixtures-card .cardhead{margin:-17px -17px 13px;padding:16px 18px;border-radius:18px 18px 0 0;background:linear-gradient(105deg,#d8c18d,#b9a477);color:#151b1b}
+    .home-fixtures-card .cardhead h2,.home-fixtures-card .cardhead .eyebrow{color:#171d1d!important}
+    .home-fixtures-card .cardhead .btn{background:#17201f;color:#f2e6c8;border-color:#17201f}
+    .home-fixtures-card .match{border-color:#ffffff16}
+    .home-fixtures-card .score{color:#f1dfb5;border-color:#ffffff22;background:#080e11}
+    .home-all-fixtures{margin-top:18px;padding:0;overflow:hidden;border-color:#46534e}
+    .all-fixtures-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 23px;background:linear-gradient(110deg,#1c2b29,#171d23);border-bottom:1px solid #ffffff16}
+    .all-fixtures-heading h2{margin:5px 0;font-size:20px;letter-spacing:-.4px}
+    .all-fixtures-heading p{margin:0;color:#aab5b1;font-size:11px}
+    .all-fixtures-count{font:800 11px Inter;letter-spacing:1.5px;color:#e0c995;border:1px solid #d8c18d55;border-radius:8px;padding:9px 11px;white-space:nowrap}
+    #homeFixtureArchive{padding:12px 18px 18px}
+    .home-week{border:1px solid #ffffff13;border-radius:13px;margin:8px 0;background:#ffffff03;overflow:hidden}
+    .home-week summary{display:flex;align-items:center;gap:12px;list-style:none;cursor:pointer;padding:13px 14px;min-height:52px}
+    .home-week summary::-webkit-details-marker{display:none}
+    .week-number{font:800 12px Inter;color:#e0c995;letter-spacing:.8px;min-width:34px}
+    .week-date{font-size:12px;font-weight:600}
+    .week-progress{margin-left:auto;color:#a2aeaa;font-size:10px}
+    .week-chevron{color:#d8c18d;font-size:17px;transition:transform .2s}
+    .home-week[open] .week-chevron{transform:rotate(45deg)}
+    .week-fixtures{padding:0 10px 10px;border-top:1px solid #ffffff10}
+    .week-fixtures .match:first-child{border-top:0}
+    .home-week[open]{border-color:#8d7b55}
+    .home-week[open] summary{background:#d8c18d0b}
+    .toast{border-radius:10px}
+    @media(max-width:700px){
+      .top{height:62px}.wrap{padding:16px 12px}.hero{padding:19px;min-height:0;border-radius:20px}.herohead{display:block}.herohead>.live{margin-top:8px}
+      .hero:after{font-size:65px;right:6px;bottom:-7px}.hero .title{font-size:22px!important}
+      .home-fixtures-card .cardhead{margin:-14px -14px 12px;padding:14px}
+      .all-fixtures-heading{padding:17px 14px}.all-fixtures-heading h2{font-size:16px}
+      #homeFixtureArchive{padding:9px}
+      .home-week summary{gap:8px;padding:12px 10px}.week-date{font-size:11px}.week-progress{font-size:9px}
+      .week-fixtures{padding:0 5px 7px}.week-fixtures .match{padding:13px 7px}
+      .week-fixtures .club{font-size:11px;gap:5px}.week-fixtures .crest{width:29px;height:29px}
+      .week-fixtures .score{min-width:60px;font-size:14px;padding:6px 5px}
+    }
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+  `;
+  document.head.appendChild(style);
+
+  const polish = document.createElement('style');
+  polish.id = 'sgl-pro-ui-and-theme';
+  polish.textContent = `
+    /* Distinctive matchday interface: editorial sports direction, precise controls */
+    :root{--ui-shadow:0 18px 48px #0003;--ui-focus:0 0 0 3px #d8c18d35;--ui-gold:#d8c18d}
+    button,a,.hub-tile,.home-week summary{ -webkit-tap-highlight-color:transparent }
+    button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--ui-gold);outline-offset:3px}
+    .btn,.iconbtn,.tab,.navitem{transition:transform .18s ease,background .18s ease,border-color .18s ease,color .18s ease,box-shadow .18s ease}
+    .btn{min-height:36px;letter-spacing:.1px;box-shadow:0 2px 0 #0002}
+    .btn:active,.iconbtn:active,.hub-tile:active{transform:scale(.97)}
+    .btn.primary{box-shadow:0 5px 16px #d8c18d25}
+    .iconbtn{box-shadow:0 4px 14px #0002}
+    .card{position:relative}
+    .cardhead{min-height:30px}
+    .cardhead h2{letter-spacing:-.2px}
+    .home-fixtures-card{order:-1}
+    .home-fixtures-card .match{padding:16px 12px}
+    .home-fixtures-card .versus{gap:12px}
+    .home-fixtures-card .status{letter-spacing:.8px}
+    #serviceHub{border-radius:18px;overflow:hidden}
+    #serviceHub .hub-grid{gap:clamp(10px,2vw,18px)}
+    #serviceHub .hub-tile{border-radius:15px;min-height:104px;transition:transform .2s ease,background .2s ease,box-shadow .2s ease}
+    #serviceHub .hub-tile:hover{transform:translateY(-4px);box-shadow:0 12px 24px #0002}
+    .home-leader-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+    .home-leader-item{min-height:116px;align-content:center;padding:14px;background:linear-gradient(145deg,#d8c18d12,#ffffff03);border-color:#d8c18d35}
+    .home-leader-item span{font-size:9px;letter-spacing:.65px;text-transform:uppercase;color:#c8b27e}
+    .home-leader-item b{font-size:13px;line-height:1.55;overflow-wrap:anywhere}
+    .home-leader-item strong{font:800 18px Inter,'IBM Plex Sans Thai',sans-serif;color:#e3d0a2}
+    .home-leader-edit{grid-template-columns:minmax(0,1fr) 92px}
+    .home-all-fixtures{box-shadow:var(--ui-shadow)}
+    .home-week summary:hover{background:#d8c18d12}
+    .popover,.modal,.event-editor{box-shadow:0 24px 70px #0005}
+    .toast{background:#192722;color:#eaf4ee;border:1px solid #71d3b255;box-shadow:0 12px 36px #0004}
+    .notice{border-color:var(--line)}
+    .adminbar{backdrop-filter:blur(10px)}
+    ::selection{background:#d8c18d55;color:inherit}
+    @media(max-width:760px){
+      .home-leader-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .home-leader-item{min-height:104px;padding:11px}
+      .home-leader-item strong{font-size:16px}
+      #serviceHub .hub-tile{min-height:86px}
+      .home-fixtures-card .match{padding:14px 7px}
+    }
+    /* LIGHT MODE — every surface uses the same light palette, including nested overlays */
+    body.light-mode{--ui-gold:#72552a;--ui-shadow:0 12px 34px #35234a12;color:#21172f;background:#f7f8fc}
+    body.light-mode:before{opacity:.035}
+    body.light-mode .home-fixtures-card{background:linear-gradient(145deg,#fff,#f7f5fb)!important;border:1px solid #dfd5e9!important;color:#21172f;box-shadow:0 10px 30px #35234a12}
+    body.light-mode .home-fixtures-card .cardhead{background:linear-gradient(105deg,#eee5d3,#e4edf0);color:#282331}
+    body.light-mode .home-fixtures-card .cardhead h2,body.light-mode .home-fixtures-card .cardhead .eyebrow{color:#282331!important}
+    body.light-mode .home-fixtures-card .cardhead .btn{background:#fff;color:#382c47;border-color:#d8ccdf}
+    body.light-mode .home-fixtures-card .match{border-color:#e9e3ed}
+    body.light-mode .home-fixtures-card .matchtop,body.light-mode .home-fixtures-card .footnote,body.light-mode .home-fixtures-card .status{color:#6d6477}
+    body.light-mode .home-fixtures-card .club{color:#21172f}
+    body.light-mode .home-fixtures-card .score{background:#f2edf6;color:#392b4b;border-color:#ded3e8}
+    body.light-mode .home-fixtures-card .crest{background:#f1eef5;border-color:#d9d0e2}
+    body.light-mode .home-fixtures-card .adminonly .control{background:#fff;color:#21172f;border-color:#ded5e8}
+    body.light-mode .home-all-fixtures{background:#fff;border-color:#e1d9e9}
+    body.light-mode .all-fixtures-heading{background:linear-gradient(110deg,#eee8f5,#e8f3f2);border-color:#e1d9e9}
+    body.light-mode .all-fixtures-heading p,body.light-mode .week-progress{color:#746b7d}
+    body.light-mode .all-fixtures-count{color:#72552a;border-color:#bba77b}
+    body.light-mode .home-week{background:#fbfaff;border-color:#e8e1ed}
+    body.light-mode .home-week[open]{border-color:#bba77b}
+    body.light-mode .home-week[open] summary{background:#f4efe5}
+    body.light-mode .week-number,body.light-mode .week-chevron{color:#72552a}
+    body.light-mode .week-fixtures{border-color:#e9e3ed}
+    body.light-mode .week-fixtures .match{border-color:#ece7f0}
+    body.light-mode #serviceHub{background:linear-gradient(145deg,#fff,#f5f2fa);border-color:#e2d9ec}
+    body.light-mode #serviceHub .hub-tile{background:#f8f6fb;border:1px solid #e8e1ee}
+    body.light-mode #serviceHub .hub-tile:hover{background:#f0eaf7;box-shadow:0 10px 22px #35234a12}
+    body.light-mode .home-leader-item{background:linear-gradient(145deg,#fbf8f0,#f7f5fb);border-color:#e6dcc6}
+    body.light-mode .home-leader-item span{color:#806b45}
+    body.light-mode .home-leader-item b{color:#292137}
+    body.light-mode .home-leader-item strong{color:#72552a}
+    body.light-mode .popover,body.light-mode .modal,body.light-mode .event-editor,body.light-mode .event-editor-head{background:#fff!important;color:#21172f;border-color:#e2d9ec}
+    body.light-mode .event-preview,body.light-mode .event-record,body.light-mode .inbox-message,body.light-mode .inbox-group h3{background:#f8f6fb;border-color:#e7e0ed;color:#292137}
+    body.light-mode .notice{border-color:#e9e2ed;color:#292137}
+    body.light-mode .toast{background:#fff;color:#26372d;border:1px solid #c9dfd2;box-shadow:0 12px 30px #35234a18}
+    body.light-mode .statbox,body.light-mode .rankrow,body.light-mode .mini,body.light-mode .player{background:#f7f5fa;border-color:#e8e1ed;color:#292137}
+    body.light-mode .winnerbox{background:#f7f2e8;border-color:#dfd0ad}
+    body.light-mode .poster-frame{background:#f6f4f8;border-color:#d9d0e2}
+    body.light-mode .poster-caption{color:#41374d}
+    body.light-mode .drawer{background:#fff!important;color:#21172f}
+    body.light-mode .drawerhead{background:linear-gradient(120deg,#eee8f5,#e8f3f2)}
+    body.light-mode .navitem{color:#3e3150}
+    body.light-mode .navitem.sel,body.light-mode .navitem:hover{background:#f0eafa;color:#421e76}
+    body.light-mode .bottom{background:#fffffff2;border-color:#e5deef}
+    body.light-mode .tab{color:#7c7486}
+    body.light-mode .tab.active{color:#72552a}
+    body.light-mode .adminbar{background:#f5f0df;border-color:#ddc994;color:#72552a}
+    body.light-mode .field label{color:#6d6477}
+    body.light-mode .btn{background:#f5f1fa;color:#321a58;border-color:#e1d7ee}
+    body.light-mode .btn.primary{background:linear-gradient(110deg,#4adadd,#421e76);color:#fff;border:0}
+    body.light-mode .btn:hover{background:#eee8f5;border-color:#bba9ce}
+    body.light-mode .btn.primary:hover{background:linear-gradient(110deg,#69e5e6,#5b3690)}
+    body.light-mode .tablewrap{border-color:#e7e0ed}
+    body.light-mode th{background:#f1edf6;color:#655a72}
+    body.light-mode td{color:#292137;border-color:#eee9f2}
+    body.light-mode .teamcell,body.light-mode .rank{color:#292137}
+    body.light-mode .tag,body.light-mode .pill{background:#f2edf7;color:#5c4c70;border-color:#e4d9ed}
+    body.light-mode .pill.green{background:#e7f5ed;color:#247453;border-color:#cbe8d8}
+    body.light-mode .empty{color:#756b80}
+    @media(max-width:520px){body.light-mode .home-fixtures-card .cardhead{margin:-14px -14px 12px;padding:14px}}
+  `;
+  document.head.appendChild(polish);
+
+  // Refresh the page with the authoritative Week 11 fixture list after all existing UI extensions load.
+  enforceWeek11();
+  if(typeof window.render==='function') window.render();
 })();
 </script>
 
