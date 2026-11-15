@@ -1713,4 +1713,98 @@ body.light-mode .sgl-team-history .sgl-form i{background:#f3eff7}
 }
 </style>
 
+
+<style id="sgl-unique-visitor-style">
+.sgl-visitor-card{margin:16px 0 10px;background:linear-gradient(145deg,#101d19,#0b1512);border:1px solid #31483d;border-radius:18px;padding:16px}
+.sgl-visitor-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sgl-visitor-head h2{font-size:14px;margin:0}
+.sgl-visitor-number{font:800 clamp(28px,7vw,38px) Inter,sans-serif;letter-spacing:1px;color:var(--lime);margin:9px 0 2px;font-variant-numeric:tabular-nums}
+.sgl-visitor-note{font-size:10px;line-height:1.65;color:var(--muted)}
+.sgl-visitor-status{font-size:10px;color:var(--muted);white-space:nowrap}
+.sgl-visitor-icon{font-size:20px}
+body.light-mode .sgl-visitor-card{background:linear-gradient(145deg,#fff,#f4effa);border-color:#e5deef}
+</style>
+<script id="sgl-unique-visitor-counter-v1">
+(function(){
+  'use strict';
+  const visitorCardHTML = `
+    <section class="sgl-visitor-card" id="sglVisitorCard" aria-label="สถิติผู้เข้าชมเว็บไซต์">
+      <div class="sgl-visitor-head">
+        <div>
+          <div class="eyebrow">SATIT GLORY · WEBSITE REACH</div>
+          <h2>อุปกรณ์ที่เข้าชมเว็บไซต์</h2>
+        </div>
+        <span class="sgl-visitor-icon" aria-hidden="true">◉</span>
+      </div>
+      <div class="sgl-visitor-number" id="sglVisitorCount">—</div>
+      <div class="sgl-visitor-head">
+        <span class="sgl-visitor-note">จำนวนอุปกรณ์/เบราว์เซอร์ที่แตกต่างกัน · ไม่นับบัญชี Admin</span>
+        <span class="sgl-visitor-status" id="sglVisitorStatus">กำลังเชื่อมต่อ…</span>
+      </div>
+    </section>`;
+  const footer = document.querySelector('footer.footnote');
+  if(footer && !document.getElementById('sglVisitorCard')){
+    footer.insertAdjacentHTML('beforebegin', visitorCardHTML);
+  }
+
+  const setStatus = (message) => {
+    const el = document.getElementById('sglVisitorStatus');
+    if(el) el.textContent = message;
+  };
+  const setCount = (value) => {
+    const el = document.getElementById('sglVisitorCount');
+    if(el) el.textContent = Number.isFinite(Number(value))
+      ? Number(value).toLocaleString('th-TH') : '—';
+  };
+
+  async function registerVisitorDevice(){
+    if(!document.getElementById('sglVisitorCard')) return;
+    if(!cloud){
+      setStatus('รอตั้งค่าฐานข้อมูล');
+      return;
+    }
+    try{
+      // Exclude authenticated league administrators from visitor statistics.
+      const sessionResult = await cloud.auth.getSession();
+      const email = sessionResult?.data?.session?.user?.email?.toLowerCase() || '';
+      const adminEmails = (typeof ADMIN_EMAILS!=='undefined' ? ADMIN_EMAILS : [])
+        .map(x=>String(x).toLowerCase());
+      if(email && adminEmails.includes(email)){
+        setCount('ADMIN');
+        const countEl=document.getElementById('sglVisitorCount');
+        if(countEl) countEl.style.fontSize='23px';
+        setStatus('ไม่นับการเข้าชมของ Admin');
+        return;
+      }
+
+      // One stable anonymous ID per browser storage profile; no fingerprinting.
+      let deviceId = localStorage.getItem('sgl-visitor-device-id');
+      if(!deviceId){
+        deviceId = (crypto && typeof crypto.randomUUID==='function')
+          ? crypto.randomUUID()
+          : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{
+              const r=Math.random()*16|0, v=c==='x'?r:(r&0x3|0x8);
+              return v.toString(16);
+            });
+        localStorage.setItem('sgl-visitor-device-id',deviceId);
+      }
+
+      const result = await cloud.rpc('sgl_register_visitor', {p_device_id:deviceId});
+      if(result.error) throw result.error;
+      const count = Array.isArray(result.data) ? result.data[0] : result.data;
+      if(count===null || count===undefined || !Number.isFinite(Number(count))){
+        throw new Error('รูปแบบข้อมูลจำนวนผู้เข้าชมไม่ถูกต้อง');
+      }
+      setCount(count);
+      setStatus('อัปเดตแล้ว');
+    }catch(error){
+      console.warn('SGL visitor counter:',error);
+      setStatus('ยังไม่พร้อม · ต้องตั้งค่า SQL');
+    }
+  }
+
+  registerVisitorDevice();
+})();
+</script>
+
 </body></html>
