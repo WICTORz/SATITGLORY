@@ -137,48 +137,7 @@ function snapshotState(){let copy=JSON.parse(JSON.stringify(state));delete copy.
 function persist(){state._updatedAt=Date.now();let data=snapshotState();try{localStorage.setItem('sgl-state',JSON.stringify(data));localStorageWorks=true}catch{localStorageWorks=false}document.body.classList.toggle('isadmin',!!(cloudIsAdmin&&state.admin));render();if(cloud&&cloudIsAdmin&&!cloudLoading){clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(()=>saveCloudState(data),450)}}
 async function saveCloudState(data){if(!cloud||!cloudIsAdmin)return false;const publicData=JSON.parse(JSON.stringify(data));delete publicData.messages;const privateData={messages:(data.messages||[]).filter(m=>!m.remoteId)};const job=cloudSaveQueue.then(async()=>{const pub=await cloud.from('league_state').upsert({id:1,data:publicData,updated_at:new Date().toISOString()},{onConflict:'id'});if(pub.error)throw pub.error;const priv=await cloud.from('league_private').upsert({id:1,data:privateData,updated_at:new Date().toISOString()},{onConflict:'id'});if(priv.error)throw priv.error;setCloudStatus('ซิงก์ออนไลน์แล้ว','ok');return true});cloudSaveQueue=job.catch(e=>{setCloudStatus('บันทึกออนไลน์ไม่สำเร็จ','error');console.error('Supabase save error:',e.message);toast('บันทึกออนไลน์ไม่สำเร็จ กรุณาตรวจ SQL/RLS');return false});return cloudSaveQueue}
 function setCloudStatus(label,type=''){let el=document.getElementById('cloudStatus');if(el){el.textContent=label;el.className='pill'+(type==='ok'?' green':'')}}
-async function loadCloudState(showErrors=false){
- if(!cloud){setCloudStatus('ยังไม่ตั้งค่า Supabase');return false}
- cloudLoading=true;
- try{
-  const {data,error}=await cloud.from('league_state').select('data,updated_at').eq('id',1).maybeSingle();
-  if(error)throw error;
-  if(data&&data.data){
-   const remote=data.data;
-   const localTime=Number(state._updatedAt||0);
-   const remoteTime=Math.max(Date.parse(data.updated_at||0)||0,Number(remote._updatedAt||0));
-   const keepLocal=localTime>remoteTime;
-   if(!keepLocal){
-    Object.keys(remote).forEach(k=>{if(k!=='weeks'&&k!=='admin'&&k!=='messages')state[k]=remote[k]});
-    if(remote.weeks)Object.keys(remote.weeks).forEach(w=>{if(weeks[w])weeks[w]=remote.weeks[w]});
-   }
-   if(cloudIsAdmin){
-    const priv=await cloud.from('league_private').select('data').eq('id',1).maybeSingle();
-    if(priv.error)throw priv.error;
-    const privateMessages=priv.data?.data?.messages||[];
-    const inbox=await cloud.from('league_inbox').select('id,type,name,message,submitted_at').order('submitted_at',{ascending:false});
-    if(inbox.error)throw inbox.error;
-    if(!keepLocal)state.messages=[...(inbox.data||[]).map(m=>({remoteId:m.id,type:m.type,name:m.name,text:m.message,time:new Date(m.submitted_at).toLocaleString('th-TH')})),...privateMessages.filter(m=>!m.remoteId)];
-   }
-   try{localStorage.setItem('sgl-state',JSON.stringify(snapshotState()))}catch{}
-   render();
-   if(keepLocal){
-    setCloudStatus(cloudIsAdmin?'พบข้อมูลในเครื่องที่ใหม่กว่า · กำลังซิงก์':'พบข้อมูลในเครื่องที่ใหม่กว่า · รอผู้จัดซิงก์','ok');
-    if(cloudIsAdmin)setTimeout(()=>saveCloudState(snapshotState()),250);
-   }else{
-    setCloudStatus('โหลดข้อมูลออนไลน์ล่าสุดแล้ว','ok');
-    if(cloudIsAdmin)setTimeout(()=>saveCloudState(snapshotState()),700);
-   }
-   return true;
-  }
-  setCloudStatus('ฐานข้อมูลพร้อม · ยังไม่มีข้อมูล');
-  return false;
- }catch(e){
-  console.error('Supabase load error:',e.message);setCloudStatus('โหลดออนไลน์ไม่สำเร็จ','error');
-  if(showErrors)toast('โหลดข้อมูลออนไลน์ไม่สำเร็จ ตรวจ SQL/RLS และการตั้งค่า');
-  return false;
- }finally{cloudLoading=false}
-}
+async function loadCloudState(showErrors=false){if(!cloud){setCloudStatus('ยังไม่ตั้งค่า Supabase');return false}cloudLoading=true;try{const {data,error}=await cloud.from('league_state').select('data,updated_at').eq('id',1).maybeSingle();if(error)throw error;if(data&&data.data){const remote=data.data;Object.keys(remote).forEach(k=>{if(k!=='weeks'&&k!=='admin'&&k!=='messages')state[k]=remote[k]});if(remote.weeks){ Object.keys(remote.weeks).forEach(w=>{ if(weeks[w]){ weeks[w] = remote.weeks[w]; } }); };if(cloudIsAdmin){const priv=await cloud.from('league_private').select('data').eq('id',1).maybeSingle();if(priv.error)throw priv.error;const privateMessages=priv.data?.data?.messages||[];const inbox=await cloud.from('league_inbox').select('id,type,name,message,submitted_at').order('submitted_at',{ascending:false});if(inbox.error)throw inbox.error;state.messages=[...(inbox.data||[]).map(m=>({remoteId:m.id,type:m.type,name:m.name,text:m.message,time:new Date(m.submitted_at).toLocaleString('th-TH')})),...privateMessages.filter(m=>!m.remoteId)]}try{localStorage.setItem('sgl-state',JSON.stringify(snapshotState()))}catch{}render();setCloudStatus('ข้อมูลออนไลน์ล่าสุด','ok');if(cloudIsAdmin)setTimeout(()=>saveCloudState(snapshotState()),700);return true}setCloudStatus('ฐานข้อมูลพร้อม · ยังไม่มีข้อมูล');return false}catch(e){console.error('Supabase load error:',e.message);setCloudStatus('โหลดออนไลน์ไม่สำเร็จ','error');if(showErrors)toast('โหลดข้อมูลออนไลน์ไม่สำเร็จ ตรวจ SQL/RLS และการตั้งค่า');return false}finally{cloudLoading=false}}
 function adminAction(){if(cloudIsAdmin&&state.admin){go('players');return}if(!cloud){openModal(`<h2>ตั้งค่าฐานข้อมูลก่อน</h2><p class="muted">ยังไม่ได้ใส่ Supabase URL และ Publishable/anon key ในไฟล์ index.html ดูคู่มือติดตั้งที่แนบมา แล้วตั้งค่าก่อนเข้าสู่ระบบผู้จัด</p><button class="btn primary" onclick="closeModal()">เข้าใจแล้ว</button>`);return}openModal(`<h2>เข้าสู่ระบบผู้จัด</h2><p class="muted">ใช้ 2 บัญชีผู้จัดที่ได้รับอนุญาต และต้องลงทะเบียนบัญชีไว้ใน Supabase Auth แล้ว</p><div class="field"><label>อีเมล</label><input id="adminEmail" class="control" type="email" autocomplete="username" placeholder="admin@example.com"></div><div class="field"><label>รหัสผ่าน</label><input id="adminPass" class="control" type="password" autocomplete="current-password" placeholder="รหัสผ่าน"></div><p id="loginError" class="footnote" style="color:var(--red)"></p><button class="btn primary" onclick="login()">เข้าสู่ระบบ</button> <button class="btn" onclick="closeModal()">ยกเลิก</button>`)}
 async function login(){if(!cloud)return toast('ยังไม่ได้ตั้งค่า Supabase');let email=document.getElementById('adminEmail')?.value.trim().toLowerCase(),password=document.getElementById('adminPass')?.value;if(!email||!password)return document.getElementById('loginError').textContent='กรอกอีเมลและรหัสผ่านให้ครบ';if(!ADMIN_EMAILS.includes(email))return document.getElementById('loginError').textContent='อีเมลนี้ไม่ได้รับอนุญาตให้เข้าสู่ระบบผู้ดูแล';let btn=document.querySelector('#modal .btn.primary');if(btn)btn.disabled=true;try{const {data,error}=await cloud.auth.signInWithPassword({email,password});if(error)throw error;const {data:adminRow,error:adminError}=await cloud.from('league_admins').select('user_id').eq('user_id',data.user.id).maybeSingle();if(adminError)throw adminError;if(!adminRow){await cloud.auth.signOut();throw new Error('บัญชีนี้ยังไม่ได้รับสิทธิ์ผู้จัด โปรดเพิ่ม User ID ในตาราง league_admins')}cloudUser=data.user;cloudIsAdmin=true;state.admin=true;closeModal();const found=await loadCloudState(true);if(!found){let ok=confirm('ยังไม่มีข้อมูลในฐานข้อมูลกลาง ต้องการนำเข้าข้อมูลเดิมจากเบราว์เซอร์นี้ขึ้นฐานข้อมูลหรือไม่? กด Cancel หากต้องการเริ่มฐานข้อมูลว่าง');if(ok)await saveCloudState(snapshotState())}document.body.classList.add('isadmin');render();setCloudStatus('เข้าสู่ระบบผู้จัดแล้ว','ok');toast('เข้าสู่ระบบผู้จัดสำเร็จ')}catch(e){let el=document.getElementById('loginError');if(el)el.textContent=e.message||'เข้าสู่ระบบไม่สำเร็จ';else toast(e.message||'เข้าสู่ระบบไม่สำเร็จ');console.error('Admin login error:',e.message)}finally{let b=document.querySelector('#modal .btn.primary');if(b)b.disabled=false}}
 async function logout(){if(cloud)await cloud.auth.signOut();cloudUser=null;cloudIsAdmin=false;state.admin=false;document.body.classList.remove('isadmin');render();setCloudStatus('ออกจากระบบแล้ว');toast('ออกจากระบบผู้จัดแล้ว')}
@@ -1149,34 +1108,14 @@ window.approvePitchRequest=function(i){if(!state.admin)return;const m=state.mess
     };
   }
 
-  // Keep score edits durable locally, then require a confirmed Supabase write for cross-device sync.
-  window.setScore = async function(w,i,k,v){
-    if(!state.admin)return toast('เข้าสู่ระบบผู้จัดก่อนแก้ไขผลการแข่งขัน');
-    if(!weeks[w]||!weeks[w][i])return toast('ไม่พบคู่แข่งขันที่ต้องการแก้ไข');
-    if(v!==''&&(!Number.isInteger(Number(v))||Number(v)<0))return toast('กรุณากรอกประตูเป็นจำนวนเต็มตั้งแต่ 0 ขึ้นไป');
-    weeks[w][i][k]=v===''?null:Number(v);
-    persist();
-    if(cloud&&cloudIsAdmin){
-      const ok=await saveCloudState(snapshotState());
-      if(ok)setCloudStatus('บันทึกสกอร์ W'+w+' ออนไลน์แล้ว','ok');
-      else setCloudStatus('สกอร์อยู่ในเครื่อง · ซิงก์ออนไลน์ไม่สำเร็จ','error');
-    }else setCloudStatus('สกอร์บันทึกในเครื่อง · รอเชื่อมต่อผู้จัด');
-  };
-
   window.saveMatchweekResults = async function(){
-    if(!state.admin)return toast('เข้าสู่ระบบผู้จัดก่อนบันทึกผล');
+    if(!state.admin) return toast('เข้าสู่ระบบผู้จัดก่อนบันทึกผล');
     enforceWeek11();
-    const incomplete=weeks[11].some(m=>(m[1]===null)!==(m[3]===null));
-    if(incomplete)return toast('มีคู่ที่กรอกสกอร์เพียงฝั่งเดียว กรุณากรอกให้ครบทั้งสองทีม');
     persist();
-    if(cloud&&cloudIsAdmin){
-      const ok=await saveCloudState(snapshotState());
-      if(ok){setCloudStatus('บันทึกผล WEEK 11 ออนไลน์แล้ว','ok');toast('บันทึกผล WEEK 11 ลงฐานข้อมูลกลางสำเร็จ');}
-      else{setCloudStatus('บันทึกในเครื่องแล้ว · ซิงก์ออนไลน์ไม่สำเร็จ','error');toast('ข้อมูลยังอยู่ในอุปกรณ์นี้ แต่ฐานข้อมูลกลางบันทึกไม่สำเร็จ กรุณาตรวจการเชื่อมต่อ/สิทธิ์ Supabase');}
-    }else{
-      setCloudStatus('บันทึกในเครื่องแล้ว · รอผู้จัดเชื่อมต่อ Supabase');
-      toast('บันทึกในอุปกรณ์นี้แล้ว · ยังไม่ซิงก์ฐานข้อมูลกลาง');
-    }
+    if(typeof cloud !== 'undefined' && cloud && cloudIsAdmin){
+      const ok = await saveCloudState(snapshotState());
+      toast(ok?'บันทึกผล WEEK 11 ออนไลน์แล้ว':'บันทึกในเครื่องแล้ว แต่ซิงก์ออนไลน์ไม่สำเร็จ');
+    }else toast('บันทึกผล WEEK 11 แล้ว');
   };
 
   window.announceResults = function(){
@@ -1431,6 +1370,201 @@ window.approvePitchRequest=function(i){if(!state.admin)return;const m=state.mess
   @media(max-width:700px){
     .home-all-fixtures .home-week summary{min-height:54px}
   }
+</style>
+
+
+<script id="sgl-persistent-results-team-history-v3">
+(function(){
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const weekDates = {1:'6 กันยายน',2:'13 กันยายน',3:'20 กันยายน',4:'27 กันยายน',5:'4 ตุลาคม',6:'11 ตุลาคม',7:'18 ตุลาคม',8:'25 ตุลาคม',9:'1 พฤศจิกายน',10:'8 พฤศจิกายน',11:'15 พฤศจิกายน'};
+
+  // A score edit must not call render(): rendering replaces the Save button while
+  // the browser is dispatching the input's blur/change and can cancel its click.
+  window.setScore = function(w,i,k,v){
+    if(!state?.admin) return toast?.('เข้าสู่ระบบผู้จัดก่อนแก้ไขผล');
+    const week = weeks?.[w];
+    if(!week?.[i]) return;
+    week[i][k] = v === '' ? null : Math.max(0, Number(v));
+    state._updatedAt = Date.now();
+    try { localStorage.setItem('sgl-state', JSON.stringify(snapshotState())); } catch(e) {}
+    const row = $('todayMatches')?.querySelectorAll('.match')?.[i];
+    const vals = row?.querySelectorAll('input[type="number"]');
+    if(vals?.length===2){
+      const a=week[i][1], b=week[i][3];
+      const score=row.querySelector('.score');
+      if(score) score.textContent=(a!==null&&b!==null)?`${a} : ${b}`:'– : –';
+    }
+  };
+
+  // Capture all six W11 score fields at save-time, not only values whose
+  // change event happened to fire before the button was pressed.
+  window.saveMatchweekResults = async function(){
+    if(!state?.admin || !cloudIsAdmin) return toast?.('เข้าสู่ระบบผู้จัดออนไลน์ก่อนบันทึกผล');
+    const rows = $('todayMatches')?.querySelectorAll('.match') || [];
+    if(rows.length < 6) return toast?.('ไม่พบช่องกรอกผล WEEK 11 กรุณารีเฟรชหน้า');
+    rows.forEach((row,i)=>{
+      const inputs=row.querySelectorAll('input[type="number"]');
+      if(inputs.length>=2){
+        weeks[11][i][1]=inputs[0].value===''?null:Math.max(0,Number(inputs[0].value));
+        weeks[11][i][3]=inputs[1].value===''?null:Math.max(0,Number(inputs[1].value));
+      }
+      const status=row.querySelector('select');
+      if(status){state.statuses=state.statuses||{};state.statuses['11-'+i]=status.value;}
+    });
+    state._updatedAt=Date.now();
+    try { localStorage.setItem('sgl-state',JSON.stringify(snapshotState())); } catch(e) {}
+    if(cloudSaveTimer) clearTimeout(cloudSaveTimer);
+    // Refresh standings, schedule, archive and score display from the same state.
+    if(typeof render==='function') render();
+    try{
+      const ok=await saveCloudState(snapshotState());
+      if(ok) toast?.('บันทึกผล WEEK 11 ลงฐานข้อมูลกลางแล้ว · ผู้ชมจะได้รับข้อมูลอัปเดต');
+      else toast?.('เก็บสำรองในเครื่องแล้ว แต่ซิงก์ฐานข้อมูลกลางไม่สำเร็จ');
+    }catch(e){
+      console.error('W11 save failed',e);
+      toast?.('บันทึกออนไลน์ไม่สำเร็จ: '+(e.message||'ตรวจสอบการเชื่อมต่อ'));
+    }
+  };
+
+  // Team-level season record. Counts are derived only from saved scores and
+  // matchEvents; blank fixtures never become wins/losses or invented scorers.
+  function teamHistoryHTML(teamId){
+    const teamInfo=team(teamId), matches=[];
+    const totals={played:0,wins:0,draws:0,losses:0,gf:0,ga:0};
+    const scorers={}, yellows={}, assists={}, discipline={};
+    Object.keys(weeks||{}).sort((a,b)=>+a-+b).forEach(w=>{
+      (weeks[w]||[]).forEach((m,i)=>{
+        const [home,hg,away,ag]=m;
+        if(home!==teamId && away!==teamId) return;
+        const isHome=home===teamId, opponent=isHome?away:home;
+        const gf=isHome?hg:ag, ga=isHome?ag:hg;
+        const played=gf!==null && gf!==undefined && ga!==null && ga!==undefined;
+        let outcome='รอแข่งขัน', outcomeClass='';
+        if(played){
+          totals.played++;totals.gf+=Number(gf);totals.ga+=Number(ga);
+          if(gf>ga){totals.wins++;outcome='ชนะ';outcomeClass='w'}
+          else if(gf<ga){totals.losses++;outcome='แพ้';outcomeClass='l'}
+          else{totals.draws++;outcome='เสมอ';outcomeClass='d'}
+        }
+        const ev=(state.matchEvents||{})[w+'-'+i]||[];
+        const side=isHome?'home':'away';
+        const ownEvents=ev.filter(e=>e.side===side);
+        const goals=ownEvents.filter(e=>e.type==='goal'||e.type==='penalty');
+        const cards=ownEvents.filter(e=>e.type==='yellow');
+        const matchScorers=goals.map(e=>{
+          const n=Number(e.count)||1;scorers[e.name]=(scorers[e.name]||0)+n;
+          return `${e.name}${n>1?' ×'+n:''}`;
+        });
+        cards.forEach(e=>{const n=Number(e.count)||1;yellows[e.name]=(yellows[e.name]||0)+n;});
+        ownEvents.filter(e=>e.type==='assist').forEach(e=>{assists[e.name]=(assists[e.name]||0)+1;});
+        ownEvents.filter(e=>['red','redyellow'].includes(e.type)).forEach(e=>{discipline[e.name]=(discipline[e.name]||0)+1;});
+        const eventBits=[];
+        if(matchScorers.length) eventBits.push('⚽ '+matchScorers.join(', '));
+        if(cards.length) eventBits.push('🟨 '+cards.map(e=>e.name).join(', '));
+        if(ownEvents.some(e=>e.type==='own')) eventBits.push('OG '+ownEvents.filter(e=>e.type==='own').map(e=>e.name).join(', '));
+        if(ownEvents.some(e=>e.type==='assist')) eventBits.push('A '+ownEvents.filter(e=>e.type==='assist').map(e=>e.name).join(', '));
+        matches.push({week:+w,index:i,opponent,played,gf,ga,outcome,outcomeClass,events:eventBits});
+      });
+    });
+    const list=(obj,unit)=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).map(([name,n])=>`<div class="rankrow"><b>${escapeHTML(name)}</b><strong>${n} ${unit}</strong></div>`).join('')||'<div class="empty">ยังไม่มีข้อมูลที่ผู้จัดบันทึก</div>';
+    const form=matches.filter(m=>m.played).slice(-5).map(m=>`<i class="${m.outcomeClass}">${m.outcome==='ชนะ'?'W':m.outcome==='เสมอ'?'D':'L'}</i>`).join('');
+    return `<section class="card sgl-team-history" style="margin-top:12px">
+      <div class="cardhead"><div><div class="eyebrow">SEASON PERFORMANCE · 11 MATCHWEEKS</div><h2>ผลงานตลอดฤดูกาล · ${escapeHTML(teamInfo[1])}</h2></div><span class="pill">${totals.played}/11 นัด</span></div>
+      <div class="sgl-team-stats">
+       <div class="statbox"><b>${totals.wins}</b><span>ชนะ</span></div><div class="statbox"><b>${totals.draws}</b><span>เสมอ</span></div><div class="statbox"><b>${totals.losses}</b><span>แพ้</span></div>
+       <div class="statbox"><b>${totals.gf}</b><span>ยิงได้</span></div><div class="statbox"><b>${totals.ga}</b><span>เสียประตู</span></div><div class="statbox"><b>${totals.gf-totals.ga>0?'+':''}${totals.gf-totals.ga}</b><span>ผลต่าง</span></div>
+      </div>
+      <div class="sgl-form"><span class="muted">ฟอร์ม 5 นัดล่าสุด</span>${form||'<span class="muted">ยังไม่มีผลการแข่งขัน</span>'}</div>
+      <div class="sgl-team-columns">
+       <div><h3>⚽ ผู้ทำประตู</h3>${list(scorers,'ประตู')}</div>
+       <div><h3>🟨 ใบเหลือง</h3>${list(yellows,'ใบ')}</div>
+      </div>
+      <div class="sgl-team-columns" style="margin-top:12px">
+       <div><h3>👟 แอสซิสต์</h3>${list(assists,'ครั้ง')}</div>
+       <div><h3>🟥 ใบแดง / เหลืองแดง</h3>${list(discipline,'ใบ')}</div>
+      </div>
+      <div class="cardhead" style="margin-top:20px"><h3>ผลการแข่งขันแยกรายสัปดาห์</h3><span class="pill">W01–W11</span></div>
+      <div class="tablewrap"><table class="sgl-team-results"><thead><tr><th>สัปดาห์</th><th>คู่แข่งขัน</th><th>สกอร์</th><th>ผล</th></tr></thead><tbody>
+       ${matches.map(m=>`<tr><td>W${String(m.week).padStart(2,'0')}<div class="footnote">${weekDates[m.week]||''}</div></td><td>${escapeHTML(team(m.opponent)[1])}<div class="sgl-event-note">${m.events.map(x=>escapeHTML(x)).join('<br>')||'—'}</div></td><td class="sgl-team-score">${m.played?`${m.gf} : ${m.ga}`:'– : –'}</td><td><span class="sgl-result ${m.outcomeClass}">${m.outcome}</span></td></tr>`).join('')}
+      </tbody></table></div>
+      <p class="footnote">สถิติผู้ทำประตูและใบเหลืองอ้างอิงจากเหตุการณ์ที่ผู้จัดกรอกในแต่ละแมตช์ หากยังไม่ได้กรอกเหตุการณ์ ระบบจะไม่เดาชื่อนักเตะจากสกอร์รวม</p>
+    </section>`;
+  }
+
+  const originalOpenTeam=window.openTeam;
+  if(typeof originalOpenTeam==='function'){
+    window.openTeam=function(id){
+      originalOpenTeam(id);
+      const host=$('teamDetailContent');
+      if(!host) return;
+      const existing=host.querySelector('.sgl-team-history');if(existing)existing.remove();
+      const section=document.createElement('div');section.innerHTML=teamHistoryHTML(id);
+      const card=section.firstElementChild;
+      const lineup=[...host.querySelectorAll(':scope > section.card')].find(x=>x.textContent.includes('Official! 7 Line-up'));
+      if(lineup) host.insertBefore(card,lineup); else host.appendChild(card);
+    };
+  }
+
+  // Subscribe to the complete public league-state row. This is separate from
+  // the existing notifications-only channel and refreshes scores, events,
+  // standings, archive, and the currently opened team page on every device.
+  if(cloud && typeof cloud.channel==='function'){
+    try{
+      cloud.channel('sgl-public-live-results-v3')
+        .on('postgres_changes',{event:'UPDATE',schema:'public',table:'league_state',filter:'id=eq.1'},payload=>{
+          if(state?.admin) return; // never overwrite an admin's in-progress edits
+          const remote=payload.new?.data;
+          if(!remote) return;
+          Object.keys(remote).forEach(k=>{
+            if(k!=='weeks'&&k!=='admin'&&k!=='messages') state[k]=remote[k];
+          });
+          if(remote.weeks){
+            Object.keys(remote.weeks).forEach(w=>{
+              if(weeks[w]) weeks[w]=remote.weeks[w];
+            });
+          }
+          state._updatedAt=Date.now();
+          try{localStorage.setItem('sgl-state',JSON.stringify(snapshotState()));}catch(e){}
+          const activeTeam=$('teamdetail')?.classList.contains('active')
+            ? $('teamDetailContent')?.querySelector('.lineup-table')?.dataset.teamKey : null;
+          if(typeof render==='function') render();
+          if(activeTeam) window.openTeam(activeTeam);
+          setCloudStatus?.('รับข้อมูลเรียลไทม์แล้ว','ok');
+        })
+        .subscribe((status)=>{
+          if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')
+            console.warn('Live results channel status:',status);
+        });
+    }catch(e){console.warn('Live results subscription could not start:',e);}
+  }
+})();
+</script>
+<style id="sgl-team-history-realtime-style">
+.sgl-team-history .sgl-team-stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.sgl-team-history .sgl-team-stats .statbox{text-align:center;min-width:0}
+.sgl-team-history .sgl-team-stats .statbox b{font-size:20px}
+.sgl-team-history .sgl-team-columns{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:15px}
+.sgl-team-history .sgl-team-columns>div{min-width:0;padding:10px;border:1px solid var(--line);border-radius:12px}
+.sgl-team-history .sgl-team-columns h3{margin:0 0 8px;font-size:12px}
+.sgl-team-history .sgl-team-columns .rankrow{gap:6px}
+.sgl-team-history .sgl-form{display:flex;align-items:center;gap:8px;margin:12px 0}
+.sgl-team-history .sgl-form i{font:800 10px Inter;font-style:normal;padding:4px 7px;border-radius:6px;background:#ffffff12}
+.sgl-team-history .sgl-form i.w,.sgl-team-history .sgl-result.w{color:#20d889;background:#20d88918}
+.sgl-team-history .sgl-form i.d,.sgl-team-history .sgl-result.d{color:#d7a84d;background:#ffca6818}
+.sgl-team-history .sgl-form i.l,.sgl-team-history .sgl-result.l{color:#ff777d;background:#ff5b6218}
+.sgl-team-history .sgl-result{display:inline-block;padding:4px 7px;border-radius:7px;font-size:10px;font-weight:800;background:#ffffff0b;white-space:nowrap}
+.sgl-team-history .sgl-team-score{font:800 14px Inter;white-space:nowrap}
+.sgl-team-history .sgl-event-note{font-size:9px;color:var(--muted);white-space:normal;line-height:1.5;margin-top:3px}
+.sgl-team-history .sgl-team-results{min-width:470px}
+body.light-mode .sgl-team-history .sgl-team-columns>div{background:#fbfaff;border-color:#e8e1ed}
+body.light-mode .sgl-team-history .sgl-form i{background:#f3eff7}
+@media(max-width:700px){
+ .sgl-team-history .sgl-team-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+ .sgl-team-history .sgl-team-columns{grid-template-columns:1fr}
+ .sgl-team-history .sgl-team-stats .statbox{padding:9px 6px}
+ .sgl-team-history .sgl-team-results{min-width:450px}
+}
 </style>
 
 </body></html>
