@@ -1069,9 +1069,10 @@ window.approvePitchRequest=function(i){if(!state.admin)return;const m=state.mess
     archive.innerHTML = Object.keys(weeks).sort((a,b)=>+a-+b).map(w=>{
       const complete = weeks[w].filter(m=>m[1]!==null && m[3]!==null).length;
       const isCurrent = +w===11;
-      return `<details class="home-week" ${isCurrent?'open':''}>
-        <summary><span class="week-number">W${String(w).padStart(2,'0')}</span><span class="week-date">${dates[w]||'ฤดูกาล 2026'} 2569</span><span class="week-progress">${complete}/6 ${complete===6?'จบแล้ว':'คู่ที่มีผล'}</span><span class="week-chevron">＋</span></summary>
-        <div class="week-fixtures">${weeks[w].map((m,i)=>fixture(m,i,+w)).join('')}</div>
+      const archiveLabel = +w<=10 ? '6/6 จบแล้ว' : `${complete}/6 · ${complete===6?'จบแล้ว':'โปรแกรมแข่งขัน'}`;
+      return `<details class="home-week" ${isCurrent?'':''}>
+        <summary><span class="week-number">W${String(w).padStart(2,'0')}</span><span class="week-date">${dates[w]||'ฤดูกาล 2026'} 2569</span><span class="week-progress">${archiveLabel}</span><span class="week-chevron">＋</span></summary>
+        <div class="week-fixtures">${weeks[w].map((m,i)=>fixture(m,i,+w,+w<=10)).join('')}</div>
       </details>`;
     }).join('');
   }
@@ -1098,13 +1099,12 @@ window.approvePitchRequest=function(i){if(!state.admin)return;const m=state.mess
           else if(standings && !hub) standings.insertAdjacentElement('afterend',heading.nextElementSibling || heading);
         }
       }
-      // The homepage is for the active matchweek only. Historical weeks (including
-      // completed W10) remain available in the dedicated schedule page.
+      // Keep the current matchweek panel, then show the complete season archive
+      // as the final section on the homepage.
       renderWeek11Editor();
       const next = $('nextMatches')?.closest('.card');
       if(next) next.remove();
-      const homeArchive = $('homeAllFixtures');
-      if(homeArchive) homeArchive.remove();
+      renderAllFixtures();
     };
   }
 
@@ -1338,6 +1338,38 @@ window.approvePitchRequest=function(i){if(!state.admin)return;const m=state.mess
   body.light-mode #noticeToggle .badge,body.light-mode #badge{background:#e83c50;color:#fff;}
   body.light-mode #sglClock{color:#30283a;}
   @media(max-width:420px){#sglClock{width:58px;height:34px;font-size:12px;padding:0 4px}.top .right{gap:5px}#noticeToggle{min-width:35px;min-height:34px}.match .score{min-width:58px;padding:5px 7px}}
+</style>
+
+
+<style id="sgl-score-contrast-and-home-archive">
+  /* Brighter score typography: the placeholder – : – must remain clearly visible. */
+  .home-fixtures-card .match .score{
+    color:#fff!important;
+    background:linear-gradient(135deg,#263c42 0%,#342650 100%)!important;
+    border:1px solid #8de8e8aa!important;
+    text-shadow:0 0 14px #4adadd55;
+    box-shadow:inset 0 1px 0 #ffffff22,0 5px 16px #0004;
+    font-weight:900;
+  }
+  .home-all-fixtures{margin-top:18px}
+  .home-all-fixtures .home-week summary{min-height:56px}
+  .home-all-fixtures .week-progress{color:#d7e3df;font-weight:700}
+  .home-all-fixtures .week-fixtures .score{
+    color:#fff!important;background:#202b35!important;border-color:#657b88!important;
+  }
+  body.light-mode .home-fixtures-card .match .score{
+    color:#fff!important;
+    background:linear-gradient(135deg,#4adadd 0%,#421e76 100%)!important;
+    border-color:#4adadd!important;
+    text-shadow:0 1px 4px #24143d66;
+  }
+  body.light-mode .home-all-fixtures .week-progress{color:#625672}
+  body.light-mode .home-all-fixtures .week-fixtures .score{
+    color:#fff!important;background:linear-gradient(135deg,#4adadd,#421e76)!important;border-color:#8c77aa!important;
+  }
+  @media(max-width:700px){
+    .home-all-fixtures .home-week summary{min-height:54px}
+  }
 </style>
 
 </body></html>
